@@ -52,9 +52,9 @@
 									<listOptionValue builtIn="false" value="../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy"/>
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/Device/ST/STM32L4xx/Include"/>
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/Include"/>
-									<listOptionValue builtIn="false" value="&quot;D:\Universidad\Sexto semestre\Estructuras computacionales\Proyecto final\ECG_Proyect_STM-32\Project\External_Library\Keypad_Hexadecimal_Library\Keypad&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;D:\Universidad\Sexto semestre\Estructuras computacionales\Proyecto final\ECG_Proyect_STM-32\Project\External_Library\Ring_Buffer_Library\Ring_Buffer&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;D:\Universidad\Sexto semestre\Estructuras computacionales\Proyecto final\ECG_Proyect_STM-32\Project\External_Library\SSD1306_Library\SSD1306&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;../External_Library\Keypad_Hexadecimal_Library\Keypad&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;../External_Library\Ring_Buffer_Library\Ring_Buffer&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;../External_Library\SSD1306_Library\SSD1306&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.173578387" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
