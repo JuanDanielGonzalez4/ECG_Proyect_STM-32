@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<link rel="icon" href="favicon.ico" type="image/x-icon">
+	<link rel="stylesheet" href="app.css">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0"></script>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+	<script src="app.js"></script>
+	
+
+	
+
+	<title>Pocket Monitor</title>
+</head>
+
+<body>
+	<header id="header">
+		<img id="icon" src="favicon.ico"/>
+		<h1> Pocket Monitor</h1>
+	</header>
+	<main>
+		<h1>!Welcome to <span>Pocket Monitor</span>!</h1>
+		<h2>Your Doctor in a few clicks</h2>
+		
+		<div id="age_bpm">
+			<div id="age_div">
+				<h2>Age: </h2>
+				<div id="input_age">
+					<input type="number" id="age" max="100" min="0" >
+					<button class="button" id="button_send" onclick="sendAge()"> <span class="material-symbols-outlined">
+						send
+						</span></button>
+				</div>
+			</div>
+
+			<div id="heartRate">
+				<h2>Heart Rate:
+					<span id="adcValue"></span>
+				</h2>
+			</div>
+		</div>
+
+		<div class="chart-container">
+			<canvas id="myChart" ></canvas>
+		</div>
+
+		<a href="how_to_use.html" class="button">How to use it?</a>
+    	<div id="output"></div>
+
+	</main>
+	<div>
+		Developed by Juan Felipe Ordóñez, Javier Leonardo Guzmán, Juan Daniel Gonzalez
+	</div>
+</body>
+<html>

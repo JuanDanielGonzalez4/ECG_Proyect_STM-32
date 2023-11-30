@@ -1,0 +1,114 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Ubuntu", sans-serif;
+  color: black;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  height: 80vh;
+  width: 100%;
+  text-align: center;
+  font-size: 1.5em;
+  color: black;
+  align-items: center;
+}
+
+main h1 {
+  padding-bottom: 0.5rem;
+  font-size: 4rem;
+}
+
+main h2{
+    color: #1de9b6;
+}
+
+ol{
+  margin-top: 1.3rem;
+  list-style: none;
+}
+
+ol span{
+    color: #1de9b6;
+}
+
+
+form {
+  display: flex;
+  width: 500px;
+  font-size: 1rem;
+  margin-left: 2rem;
+  flex-direction: row;
+  align-self: flex-start;
+}
+
+header {
+  display: flex;
+  flex-direction: row;
+  margin: 1rem 2rem;
+  align-items: center;
+  height: 10vh;
+}
+
+header h1{
+  font-size: 3rem;
+  margin-left: 1rem;
+  color: #1de9b6;
+}
+footer {
+  margin-left: 2rem;
+  display: block;
+  height: 5vh;
+}
+
+#icon {
+  width: 80px;
+  height: 80px;
+}
+
+.chart-container {
+  width: 60%;
+  height: 50vh;
+  margin-bottom: 2rem;
+}
+
+h2 {
+  font-size: 1em;
+  color: black;
+}
+
+h3 {
+  font-size: 0.7em;
+  color: black;
+}
+
+h4 {
+  font-size: 1em;
+  color: black;
+}
+
+.button {
+  display: inline-block;
+  outline: none;
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 600;
+  border-radius: 3px;
+  padding: 12px 24px;
+  border: 0;
+  color: #000021;
+  background: #1de9b6;
+  line-height: 1.15;
+  font-size: 16px;
+  margin: 0.5rem;
+}
+
+.button:hover {
+  transition: all 0.1s ease;
+  box-shadow: 0 0 0 0 #fff, 0 0 0 3px #1de9b6;
+}
