@@ -70,6 +70,8 @@ uint8_t age;
 char bpm_msg[20];
 char adc_msg[20];
 
+uint8_t cont = 0;
+
 
 // Volatile variable for keypad event to prevent compiler optimization
 volatile uint16_t key_event = 0xFF; // this var shall be volatile so the compiler does not remove it
@@ -163,13 +165,7 @@ void validate_sequence(void)
 	for (uint8_t idx = 0; idx < 11; idx++) {
 	  ring_buffer_get(&ring_buffer_keypad, &sequence[idx]);
 	}
-	// Clear the OLED screen, write the sequence, and update the screen
-		  ssd1306_Fill(Black);
-		  ssd1306_SetCursor(5, 5);
-		  ssd1306_WriteString(sequence, Font_11x18, White);
-		  ssd1306_UpdateScreen();
-		  // Wait before continuing
-		  HAL_Delay(10000);
+	HAL_UART_Transmit(&huart3, sequence, 10, HAL_MAX_DELAY);
 }
 /* USER CODE END 0 */
 
@@ -230,44 +226,51 @@ int main(void)
   printf("Waiting ID...\r\n");
   while (1)
   {
-	  // Check if there is an event from the EXTI callback
-	  if (key_event != 0xFF) { // check if there is a event from the EXTi callback
-		   key_pressed = keypad_handler(key_event); // call the keypad handler
-		  if (key_pressed != 0xFF) {
-			  printf("Key pressed: %c\r\n", key_pressed); // print the key pressed
-			  // Put the pressed key into the ring buffer
-			  ring_buffer_put(&ring_buffer_keypad, key_pressed);
-		  }
-		  // Check if the ring buffer is full
-		  	 if (ring_buffer_is_full(&ring_buffer_keypad) != 0) {
+  	  if(cont==0){
 
-		  		// Validate the sequence of key presses
-			  validate_sequence();
+  	  // Check if there is an event from the EXTI callback
+  	  if (key_event != 0xFF) { // check if there is a event from the EXTi callback
+  		   key_pressed = keypad_handler(key_event); // call the keypad handler
+  		  if (key_pressed != 0xFF) {
+  			  printf("Key pressed: %c\r\n", key_pressed); // print the key pressed
+  			  // Put the pressed key into the ring buffer
+  			  ring_buffer_put(&ring_buffer_keypad, key_pressed);
+  		  }
+  		  // Check if the ring buffer is full
+  		  if (ring_buffer_is_full(&ring_buffer_keypad) != 0) {
 
-	  // ADC Reading
-	  adc = init_adc(&hadc1); // adc reading
+  		  		// Validate the sequence of key presses
+  			  validate_sequence();
+  		  	 cont=1;
 
-	  if (adc > treshold){ // checks if there is a beat
-		  BPM = calculateBPM();// Calculate BPM
-		  sprintf(bpm_msg, "BPM: %hu\r\n", BPM);  // Message BPM
-		  // Transmit the BPM message with UART2
-		  HAL_UART_Transmit(&huart2, (uint8_t*)bpm_msg, strlen(bpm_msg), HAL_MAX_DELAY);
-	  }
-	  // Format ADC value message
-	  sprintf(adc_msg, "%hu\r\n", adc);  // #Message value adc
-	  // Transmit the ADC value with UART3 to the ESP module
-	  HAL_UART_Transmit(&huart3, (uint8_t*)adc_msg, strlen(adc_msg), HAL_MAX_DELAY);
-	  HAL_Delay(100);
+  		 }
+  		  	 key_event = 0xFF; // clean the event
+  	  }
+  	  }
+  	  else{
+  	  // ADC Reading
+  	  adc = init_adc(&hadc1); // adc reading
 
-			 }
-	key_event = 0xFF; // clean the event
-	}
-    /* USER CODE END WHILE */
+  	  if (adc > treshold){ // checks if there is a beat
+  		  BPM = calculateBPM();// Calculate BPM
+  		  sprintf(bpm_msg, "BPM: %hu\r\n", BPM);  // Message BPM
+  		  // Transmit the BPM message with UART2
+  		  HAL_UART_Transmit(&huart2, (uint8_t*)bpm_msg, strlen(bpm_msg), HAL_MAX_DELAY);
+  	  }
+  	  // Format ADC value message
+  	  sprintf(adc_msg, "%hu\r\n", adc);  // #Message value adc
+  	  // Transmit the ADC value with UART3 to the ESP module
+  	  HAL_UART_Transmit(&huart3, (uint8_t*)adc_msg, strlen(adc_msg), HAL_MAX_DELAY);
+  	  HAL_Delay(100);
+  	  }
 
-    /* USER CODE BEGIN 3 */
+      /* USER CODE END WHILE */
+
+      /* USER CODE BEGIN 3 */
+
+    /* USER CODE END 3 */
   }
-  /* USER CODE END 3 */
-}
+  }
 
 /**
   * @brief System Clock Configuration
