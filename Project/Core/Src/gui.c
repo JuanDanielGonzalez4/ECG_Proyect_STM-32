@@ -294,18 +294,14 @@ const unsigned char normal_result[] = {
 };
 
 /**
- * @brief This functions simplifies screen update process
+ * @brief This function simplifies screen update process
  * @param  resultType: result of patient health evaluation
  */
 void displayResult(const unsigned char* resultType) {
 
-	int currentTime = HAL_GetTick();
-
     ssd1306_Fill(Black);
     ssd1306_DrawBitmap(25, 0, resultType, 75, 65, White);
     ssd1306_UpdateScreen();
-
-    while(HAL_GetTick() - currentTime < 3000);
 }
 
 // Enum declaration for representing gender
@@ -315,157 +311,139 @@ enum Gender {
 };
 
 /**
- * @brief This functions simplifies screen update process
+ * @brief This function shows on screen patient's age and gender
  * @param1  gender: patient's gender (M or F)
  * @param2 age: patient's age
- * @param3 bpm: patient's bpm calculated from sensor signal
  */
 
-void assess_Patient_Health(enum Gender gender, int age, int bpm) {
+void print_Gender_Age(enum Gender gender, int age) {
+    char message[50];
 
-	int currentTime = HAL_GetTick();
+    sprintf(message, "%s. %d years old.", gender == M ? "MAN" : "WOMAN", age);
+    ssd1306_Fill(Black);
+    ssd1306_SetCursor(0, 20);
+    ssd1306_WriteString(message, Font_6x8, White);
+    ssd1306_UpdateScreen();
+}
+
+/**
+ * @brief This function shows on screen the patient's bpm
+ * @param1  bpm calculated from sensor signal
+ */
+void print_BPM(int bpm) {
+    char message[50];
+
+    sprintf(message, "BPM: %d", bpm);
+    ssd1306_Fill(Black);
+    ssd1306_SetCursor(20, 20);
+    ssd1306_WriteString(message, Font_11x18, White);
+    ssd1306_UpdateScreen();
+}
+
+/**
+ * @brief This functions simplifies screen update process
+ * @param1  bpm calculated from sensor signal
+ */
+void print_Result(int age, int bpm, enum Gender gender) {
 
 	switch(gender){
-	case M:
-
-        //static int lastCheckTime = 0;
-
-		char message1[50];
-		char message2[50];
-
-			sprintf(message1, "MAN. %d years old.", age);
-			ssd1306_Fill(Black);
-			ssd1306_SetCursor(0, 20);
-			ssd1306_WriteString(message1, Font_6x8, White);
-			ssd1306_UpdateScreen();
-
-			while (HAL_GetTick() - currentTime < 3000) {}
-
-
-			sprintf(message2, "BPM: %d", bpm);
-			ssd1306_Fill(Black);
-			ssd1306_SetCursor(20, 20);
-			ssd1306_WriteString(message2, Font_11x18, White);
-			ssd1306_UpdateScreen();
-
-	        while (HAL_GetTick() - currentTime < 6000) {}
-
-		if (age > 19 && age < 30) {
-			if (bpm >= MIN_BPM_THRESHOLD) {
-				displayResult(bad_result);
-			} else if (bpm <= MAX_BPM_THRESHOLD) {
-				displayResult(excellent_result);
-			} else if (bpm > 69 && bpm < 85){
-				displayResult(normal_result);
-			} else if (bpm > 61 && bpm < 69){
-				displayResult(good_result);
-			}
-		} else if (age > 29 && age < 40) {
-			if (bpm >= MIN_BPM_THRESHOLD) {
-				displayResult(bad_result);
-			} else if (bpm <= MAX_BPM_THRESHOLD + 2) {  // Adjusted threshold for this age group
-				displayResult(excellent_result);
-			} else if (bpm > 71 && bpm < 85){
-				displayResult(normal_result);
-			} else if (bpm > 63 && bpm <71){
-				displayResult(good_result);
-			}
-		    } else if (age > 39 && age < 50) {
-		    	if (bpm >= MIN_BPM_THRESHOLD + 4) {  // Adjusted threshold for this age group
-		    		displayResult(bad_result);
-		    	} else if (bpm <= MAX_BPM_THRESHOLD + 4) {  // Adjusted threshold for this age group
-		    		displayResult(excellent_result);
-		        } else if (bpm > 73 && bpm < 89){
-		        	displayResult(normal_result);
-		        } else if (bpm > 65 && bpm < 73){
-		        	displayResult(good_result);
-		        }
-		    } else if (age > 50){
-		    	if (bpm > 89){
-		    		displayResult(bad_result);
-		    	} else if (bpm < 67){
-		    		displayResult(excellent_result);
-		    	} else if (bpm > 75 && bpm < 89){
-		    		displayResult(normal_result);
-		    	} else if (bpm > 67 && bpm < 75){
-		    		displayResult(good_result);
-		    	}
-		    } else {
-		        ssd1306_Fill(Black);
-		        ssd1306_SetCursor(0, 0);
-		        ssd1306_WriteString("WAITING...", Font_11x18, White);
-		        ssd1306_UpdateScreen();
-		    }
-		break;
-
-	case F:
-			char message3[50];
-			char message4[50];
-
-			sprintf(message3, "WOMAN. %d years old.", age);
-			ssd1306_Fill(Black);
-			ssd1306_SetCursor(0, 20);
-			ssd1306_WriteString(message3, Font_6x8, White);
-			ssd1306_UpdateScreen();
-
-			while (HAL_GetTick() - currentTime < 3000) {};
-
-			sprintf(message4, "BPM: %d", bpm);
-			ssd1306_Fill(Black);
-			ssd1306_SetCursor(20, 20);
-			ssd1306_WriteString(message4, Font_11x18, White);
-			ssd1306_UpdateScreen();
-
-			while (HAL_GetTick() - currentTime < 6000) {}
-
+		case M:
 			if (age > 19 && age < 30) {
-				if (bpm >= MIN_BPM_THRESHOLD_0) {
+				if (bpm >= MIN_BPM_THRESHOLD) {
 					displayResult(bad_result);
-				} else if (bpm <= MAX_BPM_THRESHOLD_0) {
+				} else if (bpm <= MAX_BPM_THRESHOLD) {
 					displayResult(excellent_result);
-				} else if (bpm>77 && bpm <95){
+				} else if (bpm > 69 && bpm < 85){
 					displayResult(normal_result);
-				} else if (bpm>71 && bpm <77){
+				} else if (bpm > 61 && bpm < 69){
 					displayResult(good_result);
 				}
 			} else if (age > 29 && age < 40) {
-				if (bpm >= MIN_BPM_THRESHOLD_0+2) {
+				if (bpm >= MIN_BPM_THRESHOLD) {
 					displayResult(bad_result);
-				} else if (bpm <= MAX_BPM_THRESHOLD_0) {  // Adjusted threshold for this age group
+				} else if (bpm <= MAX_BPM_THRESHOLD + 2) {  // Adjusted threshold for this age group
 					displayResult(excellent_result);
-				} else if (bpm>79 && bpm <97){
+				} else if (bpm > 71 && bpm < 85){
 					displayResult(normal_result);
-				} else if (bpm>71 && bpm <79){
+				} else if (bpm > 63 && bpm <71){
 					displayResult(good_result);
 				}
-			} else if (age > 39 && age < 50) {
-				if (bpm >= MIN_BPM_THRESHOLD_0 + 4) {  // Adjusted threshold for this age group
-					displayResult(bad_result);
-				} else if (bpm <= MAX_BPM_THRESHOLD_0 + 2) {  // Adjusted threshold for this age group
-					displayResult(excellent_result);
-				} else if (bpm>79 && bpm <99){
-					displayResult(normal_result);
-				} else if (bpm>73 && bpm <79){
-					displayResult(good_result);
-				}
-			} else if (age >50)	 {
-				if (bpm > 103) {
-					displayResult(bad_result);
-				} else if (bpm < 74){
-					displayResult(excellent_result);
-				} else if (bpm > 83 && bpm < 103){
-					displayResult(normal_result);
-				} else if (bpm>75 && bpm <83){
-					displayResult(good_result);
-				}
-			} else {
-				ssd1306_Fill(Black);
-			    ssd1306_SetCursor(0, 0);
-			    ssd1306_WriteString("WAITING...", Font_11x18, White);
-			    ssd1306_UpdateScreen();
+			    } else if (age > 39 && age < 50) {
+			    	if (bpm >= MIN_BPM_THRESHOLD + 4) {  // Adjusted threshold for this age group
+			    		displayResult(bad_result);
+			    	} else if (bpm <= MAX_BPM_THRESHOLD + 4) {  // Adjusted threshold for this age group
+			    		displayResult(excellent_result);
+			        } else if (bpm > 73 && bpm < 89){
+			        	displayResult(normal_result);
+			        } else if (bpm > 65 && bpm < 73){
+			        	displayResult(good_result);
+			        }
+			    } else if (age > 50){
+			    	if (bpm > 89){
+			    		displayResult(bad_result);
+			    	} else if (bpm < 67){
+			    		displayResult(excellent_result);
+			    	} else if (bpm > 75 && bpm < 89){
+			    		displayResult(normal_result);
+			    	} else if (bpm > 67 && bpm < 75){
+			    		displayResult(good_result);
+			    	}
+			    } else {
+			        ssd1306_Fill(Black);
+			        ssd1306_SetCursor(0, 0);
+			        ssd1306_WriteString("WAITING...", Font_11x18, White);
+			        ssd1306_UpdateScreen();
 			    }
 			break;
-	}
 
+		case F:
+				if (age > 19 && age < 30) {
+					if (bpm >= MIN_BPM_THRESHOLD_0) {
+						displayResult(bad_result);
+					} else if (bpm <= MAX_BPM_THRESHOLD_0) {
+						displayResult(excellent_result);
+					} else if (bpm>77 && bpm <95){
+						displayResult(normal_result);
+					} else if (bpm>71 && bpm <77){
+						displayResult(good_result);
+					}
+				} else if (age > 29 && age < 40) {
+					if (bpm >= MIN_BPM_THRESHOLD_0+2) {
+						displayResult(bad_result);
+					} else if (bpm <= MAX_BPM_THRESHOLD_0) {  // Adjusted threshold for this age group
+						displayResult(excellent_result);
+					} else if (bpm>79 && bpm <97){
+						displayResult(normal_result);
+					} else if (bpm>71 && bpm <79){
+						displayResult(good_result);
+					}
+				} else if (age > 39 && age < 50) {
+					if (bpm >= MIN_BPM_THRESHOLD_0 + 4) {  // Adjusted threshold for this age group
+						displayResult(bad_result);
+					} else if (bpm <= MAX_BPM_THRESHOLD_0 + 2) {  // Adjusted threshold for this age group
+						displayResult(excellent_result);
+					} else if (bpm>79 && bpm <99){
+						displayResult(normal_result);
+					} else if (bpm>73 && bpm <79){
+						displayResult(good_result);
+					}
+				} else if (age >50)	 {
+					if (bpm > 103) {
+						displayResult(bad_result);
+					} else if (bpm < 74){
+						displayResult(excellent_result);
+					} else if (bpm > 83 && bpm < 103){
+						displayResult(normal_result);
+					} else if (bpm>75 && bpm <83){
+						displayResult(good_result);
+					}
+				} else {
+					ssd1306_Fill(Black);
+				    ssd1306_SetCursor(0, 0);
+				    ssd1306_WriteString("WAITING...", Font_11x18, White);
+				    ssd1306_UpdateScreen();
+				    }
+				break;
+		}
 }
 

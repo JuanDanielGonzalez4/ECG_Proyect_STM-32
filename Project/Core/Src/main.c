@@ -76,6 +76,7 @@ uint8_t byteRecibido;
 uint8_t receivedDigits[3];
 uint8_t digitIndex = 0;
 uint8_t age = 0;
+int gender = M;
 
 
 char bpm_msg[20];
@@ -177,12 +178,23 @@ int main(void)
 
  /* Initialize configured keyboard hexadecimal*/
     keypad_init();
+
+    typedef enum {
+        ACCION_1,
+        ACCION_2,
+        ACCION_3
+    } Estado;
+
+    uint32_t start_time = 0;
+    Estado actual_state = ACCION_1;
+    start_time = HAL_GetTick();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
 	  printf("Tick: %ld\r\n", HAL_GetTick());
 	  adc = init_adc(&hadc1); // adc reading
 	  if (adc > treshold){ // checks if there is a beat
@@ -191,9 +203,37 @@ int main(void)
 		  HAL_UART_Transmit(&huart2, (uint8_t*)bpm_msg, strlen(bpm_msg), HAL_MAX_DELAY);  // Transmit the BPM message with UART2
 
 	  }
-	  assess_Patient_Health(M, age, BPM);
 	  sprintf(adc_msg, "%hu\r\n", adc);  // #Message value adc
 	  HAL_UART_Transmit(&huart3, (uint8_t*)adc_msg, strlen(adc_msg), HAL_MAX_DELAY); // Transmit the adc with UART3 to esp module
+
+
+      // Verificar si ha pasado el tiempo para la acción actual
+      if ((HAL_GetTick() - start_time) >= 3000) {
+          // Actualizar el estado y reiniciar el contador para los próximos 3 segundos
+          start_time = HAL_GetTick();
+
+          switch (actual_state) {
+              case ACCION_1:
+            	  print_Gender_Age(gender,age);
+                  actual_state = ACCION_2;
+                  break;
+              case ACCION_2:
+                  print_BPM(BPM);
+                  actual_state = ACCION_3;
+                  break;
+              case ACCION_3:
+                  print_Result(age, BPM, gender);
+                  actual_state = ACCION_1;
+                  break;
+              default:
+            	  ssd1306_Fill(Black);
+            	  ssd1306_SetCursor(0, 0);
+            	  ssd1306_WriteString("WAITING...", Font_11x18, White);
+            	  ssd1306_UpdateScreen();
+                  break;
+          }
+      }
+
 	  HAL_Delay(100);
   }
 

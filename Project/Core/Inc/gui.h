@@ -20,6 +20,8 @@ enum Gender {
 
 // Function prototypes
 void displayResult(const unsigned char* resultType);
-void assess_Patient_Health(enum Gender gender, int age, int bpm);
+void print_Gender_Age(enum Gender gender, int age);
+void print_BPM(int bpm);
+void print_Result(int age, int bpm, enum Gender gender);
 
 #endif /* INC_GUI_H_ */
