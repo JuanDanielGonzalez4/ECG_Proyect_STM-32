@@ -3,7 +3,7 @@ This repository contains develop of the final project of the course computation 
 
 ## Hardware prerequisites
 * The project is a heart health monitor featuring an STM32L4 for controling the system, an ESP8266 for interfacing with the internet,a heart rate monitor AD8232 to process data from signal, a keypad to control access, and an OLED display for GUI.
-![pinout](DOC/pinout.png)
+![pinout](DOC/pinout.jpg)
 
 ## Firmware prerequisites
 * The ESP8266 runs the esp-link [v2.2.3](https://github.com/jeelabs/esp-link/releases/tag/v2.2.3) firmware. Please follow the [serial flashing guide](https://github.com/jeelabs/esp-link/blob/master/FLASHING.md#initial-serial-flashing).
