@@ -23,14 +23,17 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+/* Include adc library*/
 #include "adc.h"
-
+/*Include library ring_buffer*/
 #include "ring_buffer.h"
-
+/*Include library ssd1306*/
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
-
+/*Include Library keyboard hexadecimal*/
 #include "keypad.h"
+/*Include GUI library */
+#include "gui.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,6 +70,7 @@ uint8_t byteRecibido;
 uint8_t receivedDigits[3];
 uint8_t digitIndex = 0;
 uint8_t age;
+int gender = M;
 char bpm_msg[20];
 char adc_msg[20];
 
@@ -219,6 +223,17 @@ int main(void)
 
   keypad_init(); // Initialize the keypad functionality
 
+
+  typedef enum {
+       ACCION_1,
+       ACCION_2,
+       ACCION_3
+   } Estado;
+
+   uint32_t start_time = 0;
+   Estado actual_state = ACCION_1;
+   start_time = HAL_GetTick();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -261,7 +276,34 @@ int main(void)
   	  sprintf(adc_msg, "%hu\r\n", adc);  // #Message value adc
   	  // Transmit the ADC value with UART3 to the ESP module
   	  HAL_UART_Transmit(&huart3, (uint8_t*)adc_msg, strlen(adc_msg), HAL_MAX_DELAY);
-  	  HAL_Delay(100);
+      // Verificar si ha pasado el tiempo para la acción actual
+      if ((HAL_GetTick() - start_time) >= 3000) {
+          // Actualizar el estado y reiniciar el contador para los próximos 3 segundos
+          start_time = HAL_GetTick();
+
+          switch (actual_state) {
+              case ACCION_1:
+            	  print_Gender_Age(gender,age);
+                  actual_state = ACCION_2;
+                  break;
+              case ACCION_2:
+                  print_BPM(BPM);
+                  actual_state = ACCION_3;
+                  break;
+              case ACCION_3:
+                  print_Result(age, BPM, gender);
+                  actual_state = ACCION_1;
+                  break;
+              default:
+            	  ssd1306_Fill(Black);
+            	  ssd1306_SetCursor(0, 0);
+            	  ssd1306_WriteString("WAITING...", Font_11x18, White);
+            	  ssd1306_UpdateScreen();
+                  break;
+          }
+      }
+
+	  HAL_Delay(100);
   	  }
 
       /* USER CODE END WHILE */
