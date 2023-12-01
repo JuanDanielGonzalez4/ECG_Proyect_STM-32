@@ -23,18 +23,13 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
-
-
-/* Include adc library*/
 #include "adc.h"
-/*Include library ring_buffer*/
+
 #include "ring_buffer.h"
 
-/*Include library ssd1306*/
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 
-/*Include Library keyboard hexadecimal*/
 #include "keypad.h"
 /* USER CODE END Includes */
 
@@ -55,33 +50,39 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
-DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c1;
 
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
-DMA_HandleTypeDef hdma_usart3_rx;
 
 /* USER CODE BEGIN PV */
+// Global variables for ADC, BPM, and threshold
 uint16_t adc=0;
 uint16_t BPM=0;
 uint16_t treshold = 1800;
 
+// Variables related to UART reception and BPM and ADC messages
 uint8_t byteRecibido;
 uint8_t receivedDigits[3];
 uint8_t digitIndex = 0;
 uint8_t age;
-
-
 char bpm_msg[20];
 char adc_msg[20];
+
+
+// Volatile variable for keypad event to prevent compiler optimization
+volatile uint16_t key_event = 0xFF; // this var shall be volatile so the compiler does not remove it
+
+// Ring buffer for keypad input
+ring_buffer_t ring_buffer_keypad;
+uint8_t keypad_buffer[10];
+uint8_t key_pressed=0xFF;// Define the variable for reader of the key pressed
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART3_UART_Init(void);
@@ -92,29 +93,84 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+int _write(int file, char *ptr, int len)
+{
+	HAL_UART_Transmit(&huart2, (uint8_t*)ptr, len, HAL_MAX_DELAY);
+	return len;
+}
+
+/**
+  * @brief Callback called when UART data reception is completed.
+  * @param huart: Structure containing UART configuration.
+  * @retval None
+  */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+
+	// Store the received key in the ring buffer
+	ring_buffer_put(&ring_buffer_keypad, key_pressed);
+
+	// Set up another reception to continuously receive keys
+	HAL_UART_Receive_IT(&huart3, &key_pressed,1);
+
+
     if (huart->Instance == USART3) {
-        // Verificar si se recibió el delimitador de salto de línea
+    	// Check if the newline delimiter is received
         if (byteRecibido == '\n') {
-            // Convertir los dígitos recibidos en un número
+        	// Convert the received digits into a number
             uint8_t number = 0;
             for (int i = 0; i < digitIndex; i++) {
                 number = number * 10 + (receivedDigits[i] - '0');
                 age = number;
             }
 
-            // Reiniciar el índice para el próximo número
+            // Reset the index for the next number
             digitIndex = 0;
         } else if (digitIndex < 3) {
-            // Almacenar el dígito recibido
+        	// Store the received digit
             receivedDigits[digitIndex++] = byteRecibido;
         }
 
-        // Prepararse para recibir el siguiente byte
+        // Prepare to receive the next byte
         HAL_UART_Receive_IT(&huart3, &byteRecibido, 1);
+
     }
 }
+/**
+  * @brief Callback called when an external interrupt (EXTI) line is detected.
+  * @param GPIO_Pin: Specifies the port pin connected to the corresponding EXTI line.
+  * @retval None
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	// Update the key event when an external interrupt is detected
+	key_event = GPIO_Pin;
+}
 
+/**
+  * @brief Validates a sequence of key presses stored in the ring buffer.
+  * @retval None
+  */
+void validate_sequence(void)
+{
+	// Print a message indicating the start of validation
+	printf("Validating\r\n");
+
+	// Initialize an array to store the key sequence
+	uint8_t sequence[10];
+
+	// Retrieve keys from the ring buffer and store them in the sequence array
+	for (uint8_t idx = 0; idx < 11; idx++) {
+	  ring_buffer_get(&ring_buffer_keypad, &sequence[idx]);
+	}
+	// Clear the OLED screen, write the sequence, and update the screen
+		  ssd1306_Fill(Black);
+		  ssd1306_SetCursor(5, 5);
+		  ssd1306_WriteString(sequence, Font_11x18, White);
+		  ssd1306_UpdateScreen();
+		  // Wait before continuing
+		  HAL_Delay(10000);
+}
 /* USER CODE END 0 */
 
 /**
@@ -145,48 +201,71 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_USART3_UART_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+  // Asynchronous reception of a single byte using UART3
   HAL_UART_Receive_IT(&huart3, &byteRecibido, 1);
 
-
-/* Initialize configured driver SSD1306*/
-/*
- * @brief Initializes the SSD1306 controller.
- **/
-   ssd1306_Init();
-   ssd1306_Fill(Black);
-   ssd1306_WriteString("Hi!",Font_16x26,White);
-   ssd1306_UpdateScreen();
+  // Initialize a ring buffer for keypad input
+  ring_buffer_init(&ring_buffer_keypad, keypad_buffer, 10);
 
 
- /* Initialize configured keyboard hexadecimal*/
-    keypad_init();
+  // OLED Display Initialization
+  ssd1306_Init();
+  ssd1306_Fill(Black);
+  ssd1306_SetCursor(20, 20);
+  ssd1306_WriteString("Welcome", Font_11x18, White);
+  ssd1306_UpdateScreen();
+  HAL_Delay(500);
+
+  keypad_init(); // Initialize the keypad functionality
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  printf("Waiting ID...\r\n");
   while (1)
   {
-	  adc = init_adc(&hadc1); // adc reading
-	  if (adc > treshold){ // checks if there is a beat
-		  BPM = calculateBPM();
-		  sprintf(bpm_msg, "BPM: %hu\r\n", BPM);  // Message BPM
-		  HAL_UART_Transmit(&huart2, (uint8_t*)bpm_msg, strlen(bpm_msg), HAL_MAX_DELAY);  // Transmit the BPM message with UART2
-	  }
-	  sprintf(adc_msg, "%hu\r\n", adc);  // #Message value adc
-	  HAL_UART_Transmit(&huart3, (uint8_t*)adc_msg, strlen(adc_msg), HAL_MAX_DELAY); // Transmit the adc with UART3 to esp module
-	  HAL_Delay(100);
-  }
+	  // Check if there is an event from the EXTI callback
+	  if (key_event != 0xFF) { // check if there is a event from the EXTi callback
+		   key_pressed = keypad_handler(key_event); // call the keypad handler
+		  if (key_pressed != 0xFF) {
+			  printf("Key pressed: %c\r\n", key_pressed); // print the key pressed
+			  // Put the pressed key into the ring buffer
+			  ring_buffer_put(&ring_buffer_keypad, key_pressed);
+		  }
+		  // Check if the ring buffer is full
+		  	 if (ring_buffer_is_full(&ring_buffer_keypad) != 0) {
 
+		  		// Validate the sequence of key presses
+			  validate_sequence();
+
+	  // ADC Reading
+	  adc = init_adc(&hadc1); // adc reading
+
+	  if (adc > treshold){ // checks if there is a beat
+		  BPM = calculateBPM();// Calculate BPM
+		  sprintf(bpm_msg, "BPM: %hu\r\n", BPM);  // Message BPM
+		  // Transmit the BPM message with UART2
+		  HAL_UART_Transmit(&huart2, (uint8_t*)bpm_msg, strlen(bpm_msg), HAL_MAX_DELAY);
+	  }
+	  // Format ADC value message
+	  sprintf(adc_msg, "%hu\r\n", adc);  // #Message value adc
+	  // Transmit the ADC value with UART3 to the ESP module
+	  HAL_UART_Transmit(&huart3, (uint8_t*)adc_msg, strlen(adc_msg), HAL_MAX_DELAY);
+	  HAL_Delay(100);
+
+			 }
+	key_event = 0xFF; // clean the event
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
+  }
   /* USER CODE END 3 */
 }
 
@@ -292,7 +371,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_12CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -425,25 +504,6 @@ static void MX_USART3_UART_Init(void)
 }
 
 /**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA1_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-  /* DMA1_Channel3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -482,19 +542,19 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : COLUMN_1_Pin */
   GPIO_InitStruct.Pin = COLUMN_1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(COLUMN_1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : COLUMN_4_Pin */
   GPIO_InitStruct.Pin = COLUMN_4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(COLUMN_4_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : COLUMN_2_Pin COLUMN_3_Pin */
   GPIO_InitStruct.Pin = COLUMN_2_Pin|COLUMN_3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ROW_2_Pin ROW_4_Pin ROW_3_Pin */
@@ -503,6 +563,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
