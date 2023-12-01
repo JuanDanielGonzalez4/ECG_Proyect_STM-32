@@ -56,8 +56,10 @@ ADC_HandleTypeDef hadc1;
 
 I2C_HandleTypeDef hi2c1;
 
+UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart3_rx;
 
 /* USER CODE BEGIN PV */
 // Global variables for ADC, BPM, and threshold
@@ -89,10 +91,12 @@ uint8_t key_pressed=0xFF;// Define the variable for reader of the key pressed
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_UART4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -115,10 +119,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 	// Store the received key in the ring buffer
 	ring_buffer_put(&ring_buffer_keypad, key_pressed);
-
-	// Set up another reception to continuously receive keys
-	HAL_UART_Receive_IT(&huart3, &key_pressed,1);
-
 
     if (huart->Instance == USART3) {
     	// Check if the newline delimiter is received
@@ -201,10 +201,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_USART3_UART_Init();
   MX_ADC1_Init();
+  MX_UART4_Init();
   /* USER CODE BEGIN 2 */
   // Asynchronous reception of a single byte using UART3
   HAL_UART_Receive_IT(&huart3, &byteRecibido, 1);
@@ -223,7 +225,7 @@ int main(void)
 
   keypad_init(); // Initialize the keypad functionality
 
-
+ // Initialize actions for ecg module.
   typedef enum {
        ACCION_1,
        ACCION_2,
@@ -242,25 +244,24 @@ int main(void)
   while (1)
   {
   	  if(cont==0){
+		   // This block executes if the variable 'cont' is 0.
+          // It checks for a pending keyboard event.
+		  if (key_event != 0xFF) { // check if there is a event from the EXTi callback
+			   key_pressed = keypad_handler(key_event); // call the keypad handler
+			  if (key_pressed != 0xFF) {
+				  printf("Key pressed: %c\r\n", key_pressed); // print the key pressed
+				  // Put the pressed key into the ring buffer
+				  ring_buffer_put(&ring_buffer_keypad, key_pressed);
+			  }
+			  // Check if the ring buffer is full
+			  if (ring_buffer_is_full(&ring_buffer_keypad) != 0) {
 
-  	  // Check if there is an event from the EXTI callback
-  	  if (key_event != 0xFF) { // check if there is a event from the EXTi callback
-  		   key_pressed = keypad_handler(key_event); // call the keypad handler
-  		  if (key_pressed != 0xFF) {
-  			  printf("Key pressed: %c\r\n", key_pressed); // print the key pressed
-  			  // Put the pressed key into the ring buffer
-  			  ring_buffer_put(&ring_buffer_keypad, key_pressed);
-  		  }
-  		  // Check if the ring buffer is full
-  		  if (ring_buffer_is_full(&ring_buffer_keypad) != 0) {
-
-  		  		// Validate the sequence of key presses
-  			  validate_sequence();
-  		  	 cont=1;
-
-  		 }
-  		  	 key_event = 0xFF; // clean the event
-  	  }
+					// Validate the sequence of key presses
+				  validate_sequence();
+				  cont=1;
+			 }
+				 key_event = 0xFF; // clean the event
+		  }
   	  }
   	  else{
   	  // ADC Reading
@@ -281,6 +282,7 @@ int main(void)
           // Actualizar el estado y reiniciar el contador para los próximos 3 segundos
           start_time = HAL_GetTick();
 
+          // Executes actions depending on the 'actual_state'.
           switch (actual_state) {
               case ACCION_1:
             	  print_Gender_Age(gender,age);
@@ -295,6 +297,7 @@ int main(void)
                   actual_state = ACCION_1;
                   break;
               default:
+            	  // If the state is none of the above, displays a waiting message.
             	  ssd1306_Fill(Black);
             	  ssd1306_SetCursor(0, 0);
             	  ssd1306_WriteString("WAITING...", Font_11x18, White);
@@ -306,13 +309,12 @@ int main(void)
 	  HAL_Delay(100);
   	  }
 
-      /* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-      /* USER CODE BEGIN 3 */
-
-    /* USER CODE END 3 */
+    /* USER CODE BEGIN 3 */
   }
-  }
+  /* USER CODE END 3 */
+}
 
 /**
   * @brief System Clock Configuration
@@ -416,7 +418,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_12CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -475,6 +477,41 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief UART4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_UART4_Init(void)
+{
+
+  /* USER CODE BEGIN UART4_Init 0 */
+
+  /* USER CODE END UART4_Init 0 */
+
+  /* USER CODE BEGIN UART4_Init 1 */
+
+  /* USER CODE END UART4_Init 1 */
+  huart4.Instance = UART4;
+  huart4.Init.BaudRate = 115200;
+  huart4.Init.WordLength = UART_WORDLENGTH_8B;
+  huart4.Init.StopBits = UART_STOPBITS_1;
+  huart4.Init.Parity = UART_PARITY_NONE;
+  huart4.Init.Mode = UART_MODE_TX_RX;
+  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN UART4_Init 2 */
+
+  /* USER CODE END UART4_Init 2 */
 
 }
 
@@ -549,6 +586,22 @@ static void MX_USART3_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -587,19 +640,19 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : COLUMN_1_Pin */
   GPIO_InitStruct.Pin = COLUMN_1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(COLUMN_1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : COLUMN_4_Pin */
   GPIO_InitStruct.Pin = COLUMN_4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(COLUMN_4_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : COLUMN_2_Pin COLUMN_3_Pin */
   GPIO_InitStruct.Pin = COLUMN_2_Pin|COLUMN_3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ROW_2_Pin ROW_4_Pin ROW_3_Pin */
