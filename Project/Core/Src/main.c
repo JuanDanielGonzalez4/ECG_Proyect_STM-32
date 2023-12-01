@@ -36,6 +36,10 @@
 
 /*Include Library keyboard hexadecimal*/
 #include "keypad.h"
+
+/*Include GUI library */
+#include "gui.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -65,13 +69,13 @@ DMA_HandleTypeDef hdma_usart3_rx;
 
 /* USER CODE BEGIN PV */
 uint16_t adc=0;
-uint16_t BPM=0;
+uint16_t BPM=70;
 uint16_t treshold = 1800;
 
 uint8_t byteRecibido;
 uint8_t receivedDigits[3];
 uint8_t digitIndex = 0;
-uint8_t age;
+uint8_t age = 0;
 
 
 char bpm_msg[20];
@@ -92,6 +96,12 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int _write(int file, char *ptr, int len)
+{
+  HAL_UART_Transmit(&huart2, ptr, len, 10);
+  return len;
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == USART3) {
         // Verificar si se recibió el delimitador de salto de línea
@@ -102,6 +112,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
                 number = number * 10 + (receivedDigits[i] - '0');
                 age = number;
             }
+
 
             // Reiniciar el índice para el próximo número
             digitIndex = 0;
@@ -172,12 +183,15 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  printf("Tick: %ld\r\n", HAL_GetTick());
 	  adc = init_adc(&hadc1); // adc reading
 	  if (adc > treshold){ // checks if there is a beat
 		  BPM = calculateBPM();
 		  sprintf(bpm_msg, "BPM: %hu\r\n", BPM);  // Message BPM
 		  HAL_UART_Transmit(&huart2, (uint8_t*)bpm_msg, strlen(bpm_msg), HAL_MAX_DELAY);  // Transmit the BPM message with UART2
+
 	  }
+	  assess_Patient_Health(M, age, BPM);
 	  sprintf(adc_msg, "%hu\r\n", adc);  // #Message value adc
 	  HAL_UART_Transmit(&huart3, (uint8_t*)adc_msg, strlen(adc_msg), HAL_MAX_DELAY); // Transmit the adc with UART3 to esp module
 	  HAL_Delay(100);
