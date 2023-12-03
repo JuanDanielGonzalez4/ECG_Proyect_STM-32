@@ -22,3 +22,6 @@ This repository contains develop of the final project of the course computation 
 * Once the identification document number is entered, it is transmitted via UART to the ESP8266. This data is received through Telnet in Python. Subsequently, the information is graphed on the web page through a WebSocket.
 * The page displays the graph based on information obtained from the sensor and also allows sending information to the ESP8266 via Telnet. The ESP8266, in turn, transmits the received information through UART to the main program for processing.
 * Using machine logic instead of state delays, data is displayed sequentially on the screen every 3 seconds. This includes information such as gender, age, beats per minute (bpm), and an image depending on the patient's cardiac health status based on age and bpm ranges according to gender.
+
+## Youtube video showing how the project works
+* link: https://youtu.be/K5PrwkUpdh0?si=EdRIUmZuNysao4jQ 
